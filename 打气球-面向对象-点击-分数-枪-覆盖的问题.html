@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>打气球</title>
+	<style>
+		html{height: 100%;}
+		body{height: 100%;overflow: hidden;margin:0;}
+		.ball{position:absolute;width:96px;height:123px;background:url(./img/ballon.png) no-repeat;}
+		.blow{animation: blow .2s}
+		@keyframes blow{
+			0%{transform: scale(2);opacity: 1}
+			50%{transform: scale(5);opacity: .5}
+			60%{transform: scale(8);opacity: .1}
+			100%{transform: scale(8);opacity: 0}
+		}
+	</style>
+</head>
+<body>
+	
+	<script>
+		var game = { //导演,总控制器
+			maxNumber  : 10,    //气球的总数
+			timer 	   : -1,  //游戏主循环定时器的编号
+			score      : 0,   //分数；
+			frameIndex : 0,	//游戏的总帧数。理解为游戏已经玩了多长时间
+
+			load:function(){
+				pointer.init();
+				gun.init();
+				bg.init();
+				var that  = this;
+				document.body.onclick = function(e){
+					var x = e.clientX;
+					var y = e.clientY;
+					//计算全部的气球的中心距离鼠标点的位置
+					for (var i = 0; i < that.actors.length; i++) {
+						var obj = that.actors[i];
+						if(obj.mark){//气球
+							//气球的中心点
+							var qqx = obj.x + obj.width/2;
+							var qqy = obj.y + obj.height/2;
+
+							var d =Math.sqrt(Math.pow(x-qqx,2) + Math.pow(y-qqy,2)) ;
+							console.info (obj,d);
+							if( d<obj.width/2 ){
+								//这里这个气球被打中了
+								obj.die();
+								// break;
+							}
+						}
+					}
+					console.info(e);
+					
+				}
+				document.body.onmousemove = function(e){
+					//console.info(x,y);
+					gun.moveTo(e.clientX,e.clientY);
+				}
+
+				//加载气球演员
+				for (var i = 0; i < 30; i++) {
+					
+					this.actors.push(new QQ());
+
+				}
+				//加载云朵演员
+				for (var i = 0; i < 3; i++) {
+				
+					this.actors.push( new Cloud() );
+				}
+			},
+			startGame  : function () {
+				
+				this.load();  //加载演员
+
+				var that = this;
+				this.timer = setInterval( function(){
+					//console.info(this);
+					that.frameIndex++;
+					if(that.frameIndex % 20 == 0){
+						//console.info("---------------------时间到了-----")
+						if(that.actors.length < that.maxNumber + 3){
+							//console.info("------------------------生产-----气球来了")
+							that.actors.push(new QQ());
+						}
+						else{
+							//console.info("--------------------气球数量达标了，不生产")
+
+						}
+					}
+
+
+
+
+					//console.info(that.frameIndex)
+					for (var i = 0; i < that.actors.length; i++) {
+						that.actors[i].update();
+					}
+
+				},50);
+			},
+			actors	   :[]     //保存所有的演员
+
+		};
+
+		var bg = {
+			image : "./img/bg.jpg",
+			init:function(){
+				document.body.style.background = "url(" + this.image + ") no-repeat"; 
+				document.body.style.backgroundSize = "100% 100%"
+			}
+		}
+
+		var pointer = {
+			ele:document.createElement("div"),
+			init:function(){
+				this.ele.style.position = "fixed";
+				this.ele.style.top = "10px";
+				this.ele.style.left = "10px";
+				this.ele.style.width = "100px"
+				this.ele.style.height = "30px";
+				this.ele.style.border = "2px solid red";
+				this.ele.innerHTML = "分数："
+				document.body.appendChild(this.ele);
+			},
+			addMark:function(n){
+				game.score += n;
+				this.ele.innerHTML = "分数：" + game.score;
+
+			}
+
+		}
+
+		var gun = {
+			ele:document.createElement("div"),
+			init:function(){
+				this.ele.style.position = "absolute";
+				this.ele.style.zIndex = 3;
+				this.ele.style.top = "10px";
+				this.ele.style.left = "10px";
+				this.ele.style.width = "96px"
+				this.ele.style.height = "96px";
+				this.ele.style.background = "url('./img/gun(2).png') no-repeat";
+				document.body.appendChild(this.ele);
+			},
+			moveTo:function(x,y){
+				//console.info("手枪要移动到"+ x +": "+ y);
+				//把gun移动到x,y处。
+				//相当于是要改top ,left 
+				this.ele.style.top  = y-48 +"px";
+				this.ele.style.left = x-48 +"px";
+			}
+		}
+
+
+
+// 属性：位置；分数；编号（1-8）；速度；宽度；高度
+// 方法：动（）；死（）
+		function QQ(){
+			var that = this;
+			this.x      = 48 + Math.random() * ( document.body.offsetWidth - 120) ;
+			this.y      = 800 ; //开始时应该是一个正值
+			this.mark   = Math.ceil( Math.random()*8) ; //当前气球的分值
+			this.index  = this.mark ; //当前气球的编号
+			this.dy     = this.mark * 1.5 ;       // 向上飞升的速度 分值越大，速度越大
+			this.width  = 96;
+			this.height = 123;
+			this.ele    = document.createElement("div"); //把气球放在ele中
+
+			this.pos    = ["0px 0px","-96px 0px","-192px 0px","-288px 0px",
+				   "0px -123px","-96px -123px","-192px -123px","-288px -123px"];
+
+
+			this.init();  //设置气球的背景，位置 相关的参数
+		}
+		QQ.prototype.init  = function(){
+			
+			this.ele.style.position = "absolute";
+			this.ele.style.top  = this.y + "px";
+			this.ele.style.left = this.x + "px";
+			this.ele.style.width  = this.width +"px";
+			this.ele.style.height = this.height +"px";
+			this.ele.style.backgroundImage = "url(./img/ballon.png)";
+			this.ele.style.backgroundPosition = this.pos[this.index-1];
+			this.ele.style.zIndex = 2;
+			var that = this;
+			
+
+			document.body.appendChild(this.ele);
+		}
+		QQ.prototype.update = function() {
+			this.y = this.y - this.dy;	
+
+			if(this.y < -1*this.height ){
+				console.info("我要重生！！！！！")
+				//要气球还原，再做一次初始化
+				//位置，分值，速度，
+				this.x      = 48 + Math.random() * ( document.body.offsetWidth - 120) ;
+				this.y      = 800 ; //开始时应该是一个正值
+				this.mark   = Math.ceil( Math.random()*8) ; //当前气球的分值
+				this.index  = this.mark ; //当前气球的编号
+				this.dy     = this.mark * 1.5 ;       // 向上飞升的速度 分值越大，速度越大
+				this.ele.style.backgroundPosition = this.pos[this.index-1];
+				this.ele.style.top  = this.y + "px";
+				this.ele.style.left = this.x + "px";
+			}
+			else{
+				this.ele.style.top  =  this.y + "px";
+			}	
+		};
+
+		//给对象添加死掉的方法
+		QQ.prototype.die = function(){
+			//增加分数
+			// console.info(this,that);
+			// console.info(game.score,that.mark);
+			pointer.addMark(this.mark);
+
+			//要气球还原，再做一次初始化
+			//位置，分值，速度，
+			this.x      = 48 + Math.random() * ( document.body.offsetWidth - 120) ;
+			this.y      = 800 ; //开始时应该是一个正值
+			this.mark   = Math.ceil( Math.random()*8) ; //当前气球的分值
+			this.index  = this.mark ; //当前气球的编号
+			this.dy     = this.mark * 1.5 ;       // 向上飞升的速度 分值越大，速度越大
+			this.ele.style.backgroundPosition = this.pos[this.index-1];
+			this.ele.style.top  = this.y + "px";
+			this.ele.style.left = this.x + "px";
+		}
+
+//构造器
+//// 			属性：速度；位置；高度；宽度；
+		function Cloud(){
+			this.dx     = 5 - Math.ceil( 10*Math.random() ); //速度
+
+			this.x      = 100 + 200 * Math.random();        //位置
+			this.y      = 20;
+			this.height = 50 +  Math.ceil( 50*Math.random() );
+			this.width  = this.height * 2;
+
+			this.ele    = document.createElement("div");
+
+			this.init();
+		}
+		Cloud.prototype.init = function(){
+			//设置this.ele的参数
+			this.ele.style.position="absolute";
+			this.ele.style.top = this.y +"px";
+			this.ele.style.left = this.x +"px";
+
+			this.ele.style.width = this.width + "px";
+			this.ele.style.height = this.height + "px";
+
+			this.ele.style.backgroundImage = "url(./img/多云.png)"
+			this.ele.style.backgroundSize = "100% 100%";
+			this.ele.style.zIndex = 1;
+			//把它加到body中
+			document.body.appendChild(this.ele);
+
+		}
+		Cloud.prototype.update = function(){
+			
+			//当移动到最左边，或者是最右边时，需要去 调头
+			//
+			if(this.x < 0 || this.x > (document.body.offsetWidth - this.width) ){
+				this.dx = this.dx * -1;
+			}
+
+			this.x = this.x + this.dx;
+			this.ele.style.left = this.x + "px";
+		}
+
+
+
+		game.startGame();
+		
+
+	</script>
+</body>
+</html>
